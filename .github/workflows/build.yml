@@ -3,26 +3,39 @@ name: build-windows
 on:  
   push:  
   pull_request:  
-  workflow_dispatch:  
+  
 jobs:  
   build:  
-    runs-on: windows-latest
-    
-    strategy: 
-      fail-fast: false
+    runs-on: windows-latest  
+    strategy:  
+      fail-fast: false  
       matrix:  
-        arch: [x64, Win32]  
+        include:  
+          - arch: Win32  
+            vcpkg_triplet: x86-windows-static  
+          - arch: x64  
+            vcpkg_triplet: x64-windows-static  
     steps:  
       - name: Checkout  
         uses: actions/checkout@v4  
         with:  
           submodules: recursive  
   
+      - name: Install zlib via vcpkg  
+        run: vcpkg install zlib:${{ matrix.vcpkg_triplet }}  
+  
+      - name: List vcpkg installed files  
+        run: Get-ChildItem -Path "$env:VCPKG_INSTALLATION_ROOT\installed\${{ matrix.vcpkg_triplet }}" -Recurse -File | Select-Object FullName | Format-Table -AutoSize  
+  
       - name: Configure  
-        run: cmake -S . -B build -A ${{ matrix.arch }} -DLIBRARY_TYPE=SHARED -DBUILD_TESTS=ON -DUSE_SANITIZERS=OFF -DUTIL_CHARCNV_ICONV=OFF -DUTIL_CHARCNV_WINAPI=ON -DZLIB_LIBRARY_DEBUG=${{ github.workspace }}/libs/lib/zdll.lib -DZLIB_LIBRARY_RELEASE=${{ github.workspace }}/libs/lib/zdll.lib   
+        run: cmake -S . -B build -A ${{ matrix.arch }} -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} -DLIBRARY_TYPE=STATIC -DBUILD_TESTS=ON -DUSE_SANITIZERS=OFF -DUTIL_CHARCNV_ICONV=OFF -DUTIL_CHARCNV_WINAPI=ON  
   
       - name: Build  
         run: cmake --build build --config Release --parallel  
+  
+      - name: List build output  
+        if: always()  
+        run: Get-ChildItem -Path build\bin -Recurse -File | Select-Object FullName,Length | Format-Table -AutoSize  
   
       - name: Upload artifacts  
         uses: actions/upload-artifact@v4  

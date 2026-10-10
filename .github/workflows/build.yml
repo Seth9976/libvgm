@@ -17,7 +17,7 @@ jobs:
           submodules: recursive  
   
       - name: Configure  
-        run: cmake -S . -B build -A ${{ matrix.arch }} -DLIBRARY_TYPE=SHARED -DBUILD_TESTS=ON -DUSE_SANITIZERS=OFF  
+        run: cmake -S . -B build -A ${{ matrix.arch }} -DLIBRARY_TYPE=SHARED -DBUILD_TESTS=ON -DUSE_SANITIZERS=OFF -DUTIL_CHARCNV_ICONV=OFF -DUTIL_CHARCNV_WINAPI=ON -DZLIB_LIBRARY_DEBUG=${{ github.workspace }}/libs/lib/zdll.lib -DZLIB_LIBRARY_RELEASE=${{ github.workspace }}/libs/lib/zdll.lib   
   
       - name: Build  
         run: cmake --build build --config Release --parallel  
